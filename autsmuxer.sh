@@ -33,7 +33,7 @@ SPLIT="" ##maximum filesize per part. eg. 4000MB (safer with 3900) for FAT32 fil
 
 
 TITLE="autsmuxer"
-VERSION="4.20103112"
+VERSION="4.20101402"
 
 IFS=$'\n'
 
@@ -42,11 +42,11 @@ IFS=$'\n'
 
 
 type_allpkgreq () {
-for pkg in $pkgreq; do
-	! $(type "$pkg" &> "/dev/null") && echo -e "\n $pkg is required." && ((pkgreqcounter++))
+for pkg in $@; do
+	! $(type "$pkg" &> "/dev/null") && { echo -e "\n $pkg is required."; ((pkgreqcounter++)); }
 done
 
-[ -n "$pkgreqcounter" ] && exit 1
+[ -n "$pkgreqcounter" ] && die
 }
 
 
@@ -54,30 +54,30 @@ done
 
 
 tsmuxer_mkv2x () {
-echo -e " Processng: $input..\n"
+echo -e " Processng: $1..\n"
 
-mkvinfo=$(mkvinfo "$input")
+mkvinfo=$(mkvinfo "$1")
 case $(echo "$mkvinfo" | grep "EBML version:" | cut -d' ' -f4) in
-	1) grep_b="-B6"; grep_a="-A8"
+	1) _grepb="-B6"; _grepa="-A8"
 	audio_lang="und"; subs_lang="und"
 	;;
-	*) grep_b="-B11"; grep_a="-A18"
+	*) _grepb="-B11"; _grepa="-A18"
 	_extebml="0"
 	;;
 esac
 
 
 video_codec=($(echo "$mkvinfo" | egrep -i "+ Codec ID: V_MPEG4/ISO/AVC|V_MS/VFW/WVC1|V_MPEG-2" | cut -d' ' -f6))
-video_track=($(echo "$mkvinfo" | grep -i "+ Codec ID: ${video_codec[*]}" "$grep_b" | grep -i "+ Track number:" | cut -d' ' -f6))
+video_track=($(echo "$mkvinfo" | grep -i "+ Codec ID: ${video_codec[@]}" "$_grepb" | grep -i "+ Track number:" | cut -d' ' -f6))
 
 
 audio_codec=($(echo "$mkvinfo" | egrep -i "+ Codec ID: A_AC3|A_AAC|A_DTS|A_MP3|A_MPEG/L2|A_MPEG/L3|A_LPCM" | cut -d' ' -f6))
-audio_track=($(echo "$mkvinfo" | grep -i "+ Codec ID: ${audio_codec[*]}" "$grep_b" | grep -i "+ Track number:" | cut -d' ' -f6))
+audio_track=($(echo "$mkvinfo" | grep -i "+ Codec ID: ${audio_codec[@]}" "$_grepb" | grep -i "+ Track number:" | cut -d' ' -f6))
 [ -z "$audio_lang" ] && audio_lang=($(echo "$mkvinfo" | grep -i "Track type: audio" -C13 | grep -i "Language:" | cut -d' ' -f5))
 
 
 subs_format=($(echo "$mkvinfo" | egrep -i "+ Codec ID: S_HDMV/PGS|S_TEXT/UTF8" | cut -d' ' -f6))
-subs_track=($(echo "$mkvinfo" | grep -i "+ Codec ID: ${subs_format[*]}" "$grep_b" | grep -i "+ Track number:" | cut -d' ' -f6))
+subs_track=($(echo "$mkvinfo" | grep -i "+ Codec ID: ${subs_format[@]}" "$_grepb" | grep -i "+ Track number:" | cut -d' ' -f6))
 [ -z "$subs_lang" ] && subs_lang=($(echo "$mkvinfo" | grep -i "Track type: subtitles" -C13 | grep -i "Language:" | cut -d' ' -f5))
 
 
@@ -85,102 +85,100 @@ subs_track=($(echo "$mkvinfo" | grep -i "+ Codec ID: ${subs_format[*]}" "$grep_b
 [ -n "$ATRACK" ] && aud="$((ATRACK-1))" || aud="0"
 [ -n "$STRACK" ] && sub="$((STRACK-1))" || sub="0"
 
-[ -f "${input%.*}.meta" ] && rm "${input%.*}.meta"
+[ -f "${1%.*}.meta" ] && rm "${1%.*}.meta"
 
 if [ -n "${video_codec[vid]}" ]; then
-	video_fps=$(echo "$mkvinfo" | grep "+ Track number: ${video_track[vid]}" "$grep_a" | grep -i "+ Default duration:" | cut -d' ' -f7 | tr -d '(')
+	video_fps=$(echo "$mkvinfo" | grep "+ Track number: ${video_track[vid]}" "$_grepa" | grep -i "+ Default duration:" | cut -d' ' -f7 | tr -d '(')
 
 	case "$FORMAT" in
-		ts|m2ts) echo -n "MUXOPT --no-pcr-on-video-pid --new-audio-pes --vbr --vbv-len=500" >> "${input%.*}.meta";;
-		bluray) echo -n "MUXOPT --no-pcr-on-video-pid --new-audio-pes --blu-ray --vbr --auto-chapters=5 --vbv-len=500" >> "${input%.*}.meta";;
-		avchd) echo -n "MUXOPT --no-pcr-on-video-pid --new-audio-pes --avchd --vbr --auto-chapters=5 --vbv-len=500" >> "${input%.*}.meta";;
-		demux) echo -n "MUXOPT --no-pcr-on-video-pid --new-audio-pes --demux --vbr --vbv-len=500" >> "${input%.*}.meta";;
+		ts|m2ts) echo -n "MUXOPT --no-pcr-on-video-pid --new-audio-pes --vbr --vbv-len=500" >> "${1%.*}.meta";;
+		bluray) echo -n "MUXOPT --no-pcr-on-video-pid --new-audio-pes --blu-ray --vbr --auto-chapters=5 --vbv-len=500" >> "${1%.*}.meta";;
+		avchd) echo -n "MUXOPT --no-pcr-on-video-pid --new-audio-pes --avchd --vbr --auto-chapters=5 --vbv-len=500" >> "${1%.*}.meta";;
+		demux) echo -n "MUXOPT --no-pcr-on-video-pid --new-audio-pes --demux --vbr --vbv-len=500" >> "${1%.*}.meta";;
 	esac
 	
-	[ -n "$SPLIT" ] && echo -n " --split-size=$SPLIT" >> "${input%.*}.meta"
+	[ -n "$SPLIT" ] && echo -n " --split-size=$SPLIT" >> "${1%.*}.meta"
 
 	case "$_extebml" in
-		0) echo -e "\n${video_codec[vid]}, $input, level=4.1, fps=$video_fps, insertSEI, contSPS, track=${video_track[vid]}, lang=${audio_lang[aud]}" >> "${input%.*}.meta"
+		0) echo -e "\n${video_codec[vid]}, $1, level=4.1, fps=$video_fps, insertSEI, contSPS, track=${video_track[vid]}, lang=${audio_lang[aud]}" >> "${1%.*}.meta"
 		;;
-		*) mkvextract tracks "$input" "${video_track[vid]}":"${input%.*}.264" && \
-		echo -e "\n${video_codec[vid]}, ${input%.*}.264, level=4.1, fps=$video_fps, insertSEI, contSPS, lang=${audio_lang[aud]}" >> "${input%.*}.meta"
+		*) mkvextract tracks "$1" "${video_track[vid]}":"${1%.*}.264" && \
+		echo -e "\n${video_codec[vid]}, ${1%.*}.264, level=4.1, fps=$video_fps, insertSEI, contSPS, lang=${audio_lang[aud]}" >> "${1%.*}.meta"
 		;;
 	esac
 
 else
-	echo -e "\n Incompatible video codec found."
-	exit 1
+	die "\n Incompatible video codec found."
 fi
 
 
 case "${audio_codec[aud]}" in
 	A_DTS)	if [ "$DTS" = "0" ]; then
-			mkvextract tracks "$input" "${audio_track[aud]}":"${input%.*}.dts" && dcadec -o wavall "${input%.*}.dts" | aften -v 0 -readtoeof 1 - "${input%.*}.ac3" && \
-			echo "A_AC3, ${input%.*}.ac3, lang=${audio_lang[aud]}" >> "${input%.*}.meta"
+			mkvextract tracks "$1" "${audio_track[aud]}":"${1%.*}.dts" && dcadec -o wavall "${1%.*}.dts" | aften -v 0 -readtoeof 1 - "${1%.*}.ac3" && \
+			echo "A_AC3, ${1%.*}.ac3, lang=${audio_lang[aud]}" >> "${1%.*}.meta"
 		else
 			case "$_extebml" in
-				0) echo "A_DTS, $input, track=${audio_track[aud]}, lang=${audio_lang[aud]}" >> "${input%.*}.meta"
+				0) echo "A_DTS, $1, track=${audio_track[aud]}, lang=${audio_lang[aud]}" >> "${1%.*}.meta"
 				;;
-				*) mkvextract tracks "$input" "${audio_track[aud]}":"${input%.*}.dts" && \
-				echo "A_DTS, ${input%.*}.dts, lang=${audio_lang[aud]}" >> "${input%.*}.meta"
+				*) mkvextract tracks "$1" "${audio_track[aud]}":"${1%.*}.dts" && \
+				echo "A_DTS, ${1%.*}.dts, lang=${audio_lang[aud]}" >> "${1%.*}.meta"
 				;;
 			esac
 		fi
 	;;
 	A_AC3)	_repairac3 () {
-			audio_channels=$(echo "$mkvinfo" | grep -i "+ Track number: ${audio_track[aud]}" "$grep_a" | grep -i "+ Channels:" | cut -d' ' -f6)
-			audio_frequency=$(echo "$mkvinfo" | grep -i "+ Track number: ${audio_track[aud]}" "$grep_a" | grep -i "+ Sampling frequency:" | cut -d' ' -f7)
+			audio_channels=$(echo "$mkvinfo" | grep -i "+ Track number: ${audio_track[aud]}" "$_grepa" | grep -i "+ Channels:" | cut -d' ' -f6)
+			audio_frequency=$(echo "$mkvinfo" | grep -i "+ Track number: ${audio_track[aud]}" "$_grepa" | grep -i "+ Sampling frequency:" | cut -d' ' -f7)
 			
 			##if input headers contain 'Name' tag, mencoder only reads first few MBs. few files will require this (bizarre) fix.
-			$(echo "$mkvinfo" | grep -i "+ Track number: ${audio_track[aud]}" "$grep_a" | grep -q "+ Name:") && audio_channels="2"
+			$(echo "$mkvinfo" | grep -i "+ Track number: ${audio_track[aud]}" "$_grepa" | grep -q "+ Name:") && audio_channels="2"
 
 			case "$audio_channels" in
-				2) _aften () { aften -v 1 -raw_ch 2 -raw_sr "$audio_frequency" -b 192 -wmax 30 - "${input%.*}.ac3"; };;
-				*) _aften () { aften -v 1 -raw_ch "$audio_channels" -lfe 1 -raw_sr "$audio_frequency" -b 384 -wmax 30 - "${input%.*}.ac3"; };;
+				2) _aften () { aften -v 1 -raw_ch 2 -raw_sr "$audio_frequency" -b 192 -wmax 30 - "${1%.*}.ac3"; };;
+				*) _aften () { aften -v 1 -raw_ch "$audio_channels" -lfe 1 -raw_sr "$audio_frequency" -b 384 -wmax 30 - "${1%.*}.ac3"; };;
 			esac
 	
 			mencoder -noconfig all -msglevel all=-1 -really-quiet -of rawaudio -af format=s16le -lavdopts threads=2 \
-			-oac pcm -ovc frameno "$input" -of rawaudio -channels "$audio_channels" -srate "$audio_frequency" -mc 0 -noskip -o - | _aften
+			-oac pcm -ovc frameno "$1" -of rawaudio -channels "$audio_channels" -srate "$audio_frequency" -mc 0 -noskip -o - | _aften
 	
-			echo "A_AC3, ${input%.*}.ac3, lang=${audio_lang[aud]}" >> "${input%.*}.meta"
+			echo "A_AC3, ${1%.*}.ac3, lang=${audio_lang[aud]}" >> "${1%.*}.meta"
 		}
 		
 		case "$_extebml" in
-			0) _tsmuxerinfo=$(tsMuxeR "$input")
+			0) _tsmuxerinfo=$(tsMuxeR "$1")
 			if ! echo "$_tsmuxerinfo" | grep -s "Track ID:    ${audio_track[aud]}" -A1 | grep -q "Can't detect stream type"; then
-				echo "A_AC3, $input, track=${audio_track[aud]}, lang=${audio_lang[aud]}" >> "${input%.*}.meta"
+				echo "A_AC3, $1, track=${audio_track[aud]}, lang=${audio_lang[aud]}" >> "${1%.*}.meta"
 			else
 				_repairac3
 			fi
 			;;
-			*) mkvextract tracks "$input" "${audio_track[aud]}":"${input%.*}.ac3" && _tsmuxerinfo=$(tsMuxeR "${input%.*}.ac3")
+			*) mkvextract tracks "$1" "${audio_track[aud]}":"${1%.*}.ac3" && _tsmuxerinfo=$(tsMuxeR "${1%.*}.ac3")
 			if ! echo "$_tsmuxerinfo" | grep -q "Can't detect stream type"; then
-				echo "A_AC3, ${input%.*}.ac3, lang=${audio_lang[aud]}" >> "${input%.*}.meta"
+				echo "A_AC3, ${1%.*}.ac3, lang=${audio_lang[aud]}" >> "${1%.*}.meta"
 			else
-				rm "${input%.*}.ac3"
+				rm "${1%.*}.ac3"
 				_repairac3
 			fi
 			;;
 		esac
 	;;
 	A_MPEG/L[2-3]) 	case "$_extebml" in
-				0) echo "A_MP3, $input, track=${audio_track[aud]}, lang=${audio_lang[aud]}" >> "${input%.*}.meta"
+				0) echo "A_MP3, $1, track=${audio_track[aud]}, lang=${audio_lang[aud]}" >> "${1%.*}.meta"
 				;;
-				*) mkvextract tracks "$input" "${audio_track[aud]}":"${input%.*}.mp3" && \
-				echo "A_MP3, ${input%.*}.mp3, lang=${audio_lang[aud]}" >> "${input%.*}.meta"
+				*) mkvextract tracks "$1" "${audio_track[aud]}":"${1%.*}.mp3" && \
+				echo "A_MP3, ${1%.*}.mp3, lang=${audio_lang[aud]}" >> "${1%.*}.meta"
 				;;
 			esac
 	;;
 	A_*)	case "$_extebml" in
-			0) echo "${audio_codec[aud]}, $input, track=${audio_track[aud]}, lang=${audio_lang[aud]}" >> "${input%.*}.meta"
+			0) echo "${audio_codec[aud]}, $1, track=${audio_track[aud]}, lang=${audio_lang[aud]}" >> "${1%.*}.meta"
 			;;
-			*) mkvextract tracks "$input" "${audio_track[aud]}":"${input%.*}.aud" && \
-			echo "${audio_codec[aud]}, ${input%.*}.aud, lang=${audio_lang[aud]}" >> "${input%.*}.meta"
+			*) mkvextract tracks "$1" "${audio_track[aud]}":"${1%.*}.aud" && \
+			echo "${audio_codec[aud]}, ${1%.*}.aud, lang=${audio_lang[aud]}" >> "${1%.*}.meta"
 			;;
 		esac
 	;;
-	*) echo -e "\n Incompatible audio codec found."
-	exit 1
+	*) die "\n Incompatible audio codec found."
 	;;
 esac
 
@@ -190,28 +188,34 @@ if [ -f "$SFONT" -a -n "${subs_format[sub]}" ]; then
 	video_height=$(echo "$mkvinfo" | grep "+ Pixel height:" | cut -d':' -f2 | tr -d ' ')
 	
 	case "$_extebml" in
-			0) subs_source="$input"
+			0) subs_source="$1"
 			;;
-			*) mkvextract tracks "$input" "${subs_track[sub]}":"${input%.*}.sub" && subs_source="${input%.*}.sub"
+			*) mkvextract tracks "$1" "${subs_track[sub]}":"${1%.*}.sub" && subs_source="${1%.*}.sub"
 			;;
 	esac
 	
 	echo "${subs_format[sub]}, $subs_source, font-name=$SFONT, font-size=65, font-color=0x00ffffff, bottom-offset=24, \
 	font-border=2, text-align=center, video-width=$video_width, video-height=$video_height, fps=$video_fps, track=${subs_track[sub]}, \
-	lang=${subs_lang[sub]}" >> "${input%.*}.meta"
+	lang=${subs_lang[sub]}" >> "${1%.*}.meta"
 fi
 
+output="$2"
 case "$FORMAT" in ts|m2ts) output+=".$FORMAT";; bluray|avchd|demux) output+=".$(echo $FORMAT | tr [:lower:] [:upper:])";; esac
 
-tsMuxeR "${input%.*}.meta" "$output"
-[ "$?" != "0" ] && echo -e "\n Error muxing: ${input##*/}." && _notmp && return 1
-	
-echo -e "\n ${input##*/} successfully remuxed to: $output!"
-[ "$SAVE_INPUT" = "0" ] && rm "$input" && _notmp
+tsMuxeR "${1%.*}.meta" "$output" || die "\n Error muxing: ${1##*/}."
+
+echo -e "\n ${1##*/} successfully remuxed to: $output!"
+[ "$SAVE_INPUT" = "0" ] && rm -f "$1"
+
+for tmp in "${1%.*}."{meta,264,dts,ac3,mp3,aud,sub}; do [ -f "$tmp" ] && rm -f "$tmp"; done
+
+return 0
 }
 
-_notmp () {
-	for tmp in "${input%.*}.meta" "${input%.*}.264" "${input%.*}.dts" "${input%.*}.ac3" "${input%.*}.mp3" "${input%.*}.aud" "${input%.*}.sub"; do [ -f "$tmp" ] && rm "$tmp"; done
+
+die() {
+echo -e "$1"
+exit 1
 }
 
 
@@ -291,13 +295,12 @@ while [ "$#" -ne "0" ]; do
 	shift
 done
 
-pkgreq+=("mkvinfo" "mkvextract" "dcadec" "aften" "mencoder" "tsMuxeR")
-type_allpkgreq
+type_allpkgreq "mkvinfo" "mkvextract" "dcadec" "aften" "mencoder" "tsMuxeR"
 
-if [ "$RECURSIVE" = "1" -a -d "$INPUT" ]; then INPUT=($(find "$INPUT" -type f | egrep -i ".mkv$" | sort))
-elif [ -d "$INPUT" ]; then INPUT=($(find "$INPUT" -maxdepth 1 -type f | egrep -i ".mkv$" | sort))
-elif [ ! -f "$INPUT" ]; then echo -e "\n Input file: $input not found." && usage; fi
+if [ "$RECURSIVE" = "1" -a -d "$INPUT" ]; then INPUT=($(find "$INPUT" -type f | egrep -i "\.mkv$" | sort))
+elif [ -d "$INPUT" ]; then INPUT=($(find "$INPUT" -maxdepth 1 -type f | egrep -i "\.mkv$" | sort))
+elif [ ! -f "$INPUT" ]; then echo -e "\n Input file: $INPUT not found." && usage; fi
 
-for input in ${INPUT[*]}; do output="${input%.*}"; tsmuxer_mkv2x; done
+for input in ${INPUT[@]}; do tsmuxer_mkv2x "$input" "${input%.*}"; done
 
 
