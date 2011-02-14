@@ -2,24 +2,20 @@ This is effectively MKV2VOB for UNiX based systems. (minus the GUI.)
 It is entirely automated once called with desired options and switches, and will handle all known exceptions of MKV, including those with compressed headers or corrupt audio streams.
 
 
---Added support for MKV with compressed headers.
---Added support for audio streams with corrupted headers. (As MKV2VOB's 'Repairing AC3' function. - requires mencoder.)
---Option to retain DTS. (--m-dts 0/1)
+usage: autsmuxer [-options] inputfile/dir.
 
---Added --m-format switch. (available formats: ts/m2ts/bluray/avchd/demux)
---All --m2ts-* switches replaced with --m-*
+options:
 
---Issue with filenames containing spaces addressed.
+	-R	- Recursively search for MKV files.
 
---tsmuxer_mkv2m2ts function now far more efficient.
---Sorted issues with multi-audio tracks.
---Replaced --m2ts-audio-lang/--m2ts-subs-lang switch with --m2ts-atrack --m2ts-strack
---Added --m2ts-vtrack for containers with multiple videos.
+	-d	- Delete input file after successful mux.
 
---Support for non-GNU grep/etc.
-
---VERSION 4 - 06/06/10
---Complete rewrite.
---Infinitely more stable.
-
---See usage for rundown.
+	--recursive <0/1>
+	--save-input <0/1>
+	--format <ts/m2ts/bluray/avchd/demux>
+	--dts <0/1>
+	--vtrack <#>
+	--atrack <#>
+	--strack <#>
+	--sfont </path/to/font.ttf>
+	--split <#MB/GB>
