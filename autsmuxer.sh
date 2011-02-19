@@ -67,18 +67,18 @@ case $(echo "$mkvinfo" | egrep "EBML version:" | cut -d' ' -f4) in
 esac
 
 
-video_codec=($(echo "$mkvinfo" | egrep -i "+ Codec ID: (V_MPEG4\/ISO\/AVC|V_MS\/VFW/WVC1|V_MPEG-2)" | cut -d' ' -f6))
-video_track=($(echo "$mkvinfo" | grep -i "+ Codec ID: ${video_codec[*]}" -B20 | grep -i "+ Track number:" | cut -d' ' -f6))
+video_codec=($(echo "$mkvinfo" | egrep -i "+ Codec ID: (V_MPEG4/ISO/AVC|V_MS/VFW/WVC1|V_MPEG-2)" | cut -d' ' -f6))
+video_track=($(echo "$mkvinfo" | grep -i "+ Codec ID: ${video_codec[*]}" -B11 | grep -i "+ Track number:" | cut -d' ' -f6))
 
 
-audio_codec=($(echo "$mkvinfo" | egrep -i "+ Codec ID: (A_AC3|A_AAC|A_DTS|A_MP3|A_MPEG\/L2|A_MPEG\/L3|A_LPCM)" | cut -d' ' -f6))
-audio_track=($(echo "$mkvinfo" | grep -i "+ Codec ID: ${audio_codec[*]}" -B20 | grep -i "+ Track number:" | cut -d' ' -f6))
-[ -z "$audio_lang" ] && audio_lang=($(echo "$mkvinfo" | grep -i "Track type: audio" -C20 | grep -i "Language:" | cut -d' ' -f5))
+audio_codec=($(echo "$mkvinfo" | egrep -i "+ Codec ID: (A_AC3|A_AAC|A_DTS|A_MP3|A_MPEG/L2|A_MPEG/L3|A_LPCM)" | cut -d' ' -f6))
+audio_track=($(echo "$mkvinfo" | grep -i "+ Codec ID: ${audio_codec[*]}" -B11 | grep -i "+ Track number:" | cut -d' ' -f6))
+[ -z "$audio_lang" ] && audio_lang=($(echo "$mkvinfo" | grep -i "Track type: audio" -A18 | grep -i "Language:" | cut -d' ' -f5))
 
 
-subs_format=($(echo "$mkvinfo" | egrep -i "+ Codec ID: (S_HDMV\/PGS|S_TEXT\/UTF8)" | cut -d' ' -f6))
-subs_track=($(echo "$mkvinfo" | grep -i "+ Codec ID: ${subs_format[*]}" -B20 | grep -i "+ Track number:" | cut -d' ' -f6))
-[ -z "$subs_lang" ] && subs_lang=($(echo "$mkvinfo" | grep -i "Track type: subtitles" -C20 | grep -i "Language:" | cut -d' ' -f5))
+subs_format=($(echo "$mkvinfo" | egrep -i "+ Codec ID: (S_HDMV/PGS|S_TEXT/UTF8)" | cut -d' ' -f6))
+subs_track=($(echo "$mkvinfo" | grep -i "+ Codec ID: ${subs_format[*]}" -B11 | grep -i "+ Track number:" | cut -d' ' -f6))
+[ -z "$subs_lang" ] && subs_lang=($(echo "$mkvinfo" | grep -i "Track type: subtitles" -A18 | grep -i "Language:" | cut -d' ' -f5))
 
 
 [ -n "$VTRACK" ] && vid=$((VTRACK-1)) || vid=0
@@ -88,7 +88,7 @@ subs_track=($(echo "$mkvinfo" | grep -i "+ Codec ID: ${subs_format[*]}" -B20 | g
 [ -f "$3.meta" ] && rm "$3.meta"
 
 if [ -n "${video_codec[vid]}" ]; then
-	video_fps=$(echo "$mkvinfo" | grep "+ Track number: ${video_track[vid]}" -A20 | grep -i "+ Default duration:" -m1 | cut -d' ' -f7 | tr -d '(')
+	video_fps=$(echo "$mkvinfo" | grep "+ Track number: ${video_track[vid]}" -A18 | grep -i "+ Default duration:" -m1 | cut -d' ' -f7 | tr -d '(')
 
 	case "${FORMAT:=m2ts}" in
 		ts|m2ts) echo -n "MUXOPT --no-pcr-on-video-pid --new-audio-pes --vbr --vbv-len=500" >> "$3.meta";;
@@ -127,11 +127,11 @@ case "${audio_codec[aud]}" in
 		fi
 	;;
 	A_AC3)	_repairac3 () {
-			audio_channels=$(echo "$mkvinfo" | grep -i "+ Track number: ${audio_track[aud]}" -A20 | grep -i "+ Channels:" | cut -d' ' -f6)
-			audio_frequency=$(echo "$mkvinfo" | grep -i "+ Track number: ${audio_track[aud]}" -A20 | grep -i "+ Sampling frequency:" | cut -d' ' -f7)
+			audio_channels=$(echo "$mkvinfo" | grep -i "+ Track number: ${audio_track[aud]}" -A18 | grep -i "+ Channels:" -m1 | cut -d' ' -f6)
+			audio_frequency=$(echo "$mkvinfo" | grep -i "+ Track number: ${audio_track[aud]}" -A18 | grep -i "+ Sampling frequency:" -m1 | cut -d' ' -f7)
 			
 			##if input headers contain 'Name' tag, mencoder only reads first few MBs. few files will require this (bizarre) fix.
-			$(echo "$mkvinfo" | grep -i "+ Track number: ${audio_track[aud]}" -A20 | grep -q "+ Name:") && audio_channels=2
+			$(echo "$mkvinfo" | grep -i "+ Track number: ${audio_track[aud]}" -A18 | grep -q "+ Name:") && audio_channels=2
 
 			case "$audio_channels" in
 				2) _aften () { aften -v 1 -raw_ch 2 -raw_sr "$audio_frequency" -b 192 -wmax 30 - "$3.ac3"; };;
