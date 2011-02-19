@@ -35,7 +35,7 @@ SFONT="/usr/share/fonts/TTF/DejaVuSans.ttf"	##required only for subs.
 
 
 TITLE="autsmuxer"
-VERSION=4.20101802
+VERSION=4.20101902
 
 IFS=$'\n'
 
@@ -59,28 +59,26 @@ tsmuxer_mkv2x () {
 echo -e " Processng: $1..\n"
 
 mkvinfo=$(mkvinfo "$1")
-case $(echo "$mkvinfo" | grep "EBML version:" | cut -d' ' -f4) in
-	1) _grepb="-B6"; _grepa="-A8"
-	audio_lang="und"; subs_lang="und"
+case $(echo "$mkvinfo" | egrep "EBML version:" | cut -d' ' -f4) in
+	1) audio_lang="und"; subs_lang="und"
 	;;
-	*) _grepb="-B11"; _grepa="-A18"
-	_extebml=0
+	*) _extebml=0
 	;;
 esac
 
 
-video_codec=($(echo "$mkvinfo" | egrep -i "+ Codec ID: V_MPEG4/ISO/AVC|V_MS/VFW/WVC1|V_MPEG-2" | cut -d' ' -f6))
-video_track=($(echo "$mkvinfo" | grep -i "+ Codec ID: ${video_codec[@]}" "$_grepb" | grep -i "+ Track number:" | cut -d' ' -f6))
+video_codec=($(echo "$mkvinfo" | egrep -i "+ Codec ID: (V_MPEG4\/ISO\/AVC|V_MS\/VFW/WVC1|V_MPEG-2)" | cut -d' ' -f6))
+video_track=($(echo "$mkvinfo" | grep -i "+ Codec ID: ${video_codec[*]}" -B20 | grep -i "+ Track number:" | cut -d' ' -f6))
 
 
-audio_codec=($(echo "$mkvinfo" | egrep -i "+ Codec ID: A_AC3|A_AAC|A_DTS|A_MP3|A_MPEG/L2|A_MPEG/L3|A_LPCM" | cut -d' ' -f6))
-audio_track=($(echo "$mkvinfo" | grep -i "+ Codec ID: ${audio_codec[@]}" "$_grepb" | grep -i "+ Track number:" | cut -d' ' -f6))
-[ -z "$audio_lang" ] && audio_lang=($(echo "$mkvinfo" | grep -i "Track type: audio" -C13 | grep -i "Language:" | cut -d' ' -f5))
+audio_codec=($(echo "$mkvinfo" | egrep -i "+ Codec ID: (A_AC3|A_AAC|A_DTS|A_MP3|A_MPEG\/L2|A_MPEG\/L3|A_LPCM)" | cut -d' ' -f6))
+audio_track=($(echo "$mkvinfo" | grep -i "+ Codec ID: ${audio_codec[*]}" -B20 | grep -i "+ Track number:" | cut -d' ' -f6))
+[ -z "$audio_lang" ] && audio_lang=($(echo "$mkvinfo" | grep -i "Track type: audio" -C20 | grep -i "Language:" | cut -d' ' -f5))
 
 
-subs_format=($(echo "$mkvinfo" | egrep -i "+ Codec ID: S_HDMV/PGS|S_TEXT/UTF8" | cut -d' ' -f6))
-subs_track=($(echo "$mkvinfo" | grep -i "+ Codec ID: ${subs_format[@]}" "$_grepb" | grep -i "+ Track number:" | cut -d' ' -f6))
-[ -z "$subs_lang" ] && subs_lang=($(echo "$mkvinfo" | grep -i "Track type: subtitles" -C13 | grep -i "Language:" | cut -d' ' -f5))
+subs_format=($(echo "$mkvinfo" | egrep -i "+ Codec ID: (S_HDMV\/PGS|S_TEXT\/UTF8)" | cut -d' ' -f6))
+subs_track=($(echo "$mkvinfo" | grep -i "+ Codec ID: ${subs_format[*]}" -B20 | grep -i "+ Track number:" | cut -d' ' -f6))
+[ -z "$subs_lang" ] && subs_lang=($(echo "$mkvinfo" | grep -i "Track type: subtitles" -C20 | grep -i "Language:" | cut -d' ' -f5))
 
 
 [ -n "$VTRACK" ] && vid=$((VTRACK-1)) || vid=0
@@ -90,9 +88,9 @@ subs_track=($(echo "$mkvinfo" | grep -i "+ Codec ID: ${subs_format[@]}" "$_grepb
 [ -f "$3.meta" ] && rm "$3.meta"
 
 if [ -n "${video_codec[vid]}" ]; then
-	video_fps=$(echo "$mkvinfo" | grep "+ Track number: ${video_track[vid]}" "$_grepa" | grep -i "+ Default duration:" | cut -d' ' -f7 | tr -d '(')
+	video_fps=$(echo "$mkvinfo" | grep "+ Track number: ${video_track[vid]}" -A20 | grep -i "+ Default duration:" -m1 | cut -d' ' -f7 | tr -d '(')
 
-	case "$FORMAT" in
+	case "${FORMAT:=m2ts}" in
 		ts|m2ts) echo -n "MUXOPT --no-pcr-on-video-pid --new-audio-pes --vbr --vbv-len=500" >> "$3.meta";;
 		bluray) echo -n "MUXOPT --no-pcr-on-video-pid --new-audio-pes --blu-ray --vbr --auto-chapters=5 --vbv-len=500" >> "$3.meta";;
 		avchd) echo -n "MUXOPT --no-pcr-on-video-pid --new-audio-pes --avchd --vbr --auto-chapters=5 --vbv-len=500" >> "$3.meta";;
@@ -129,11 +127,11 @@ case "${audio_codec[aud]}" in
 		fi
 	;;
 	A_AC3)	_repairac3 () {
-			audio_channels=$(echo "$mkvinfo" | grep -i "+ Track number: ${audio_track[aud]}" "$_grepa" | grep -i "+ Channels:" | cut -d' ' -f6)
-			audio_frequency=$(echo "$mkvinfo" | grep -i "+ Track number: ${audio_track[aud]}" "$_grepa" | grep -i "+ Sampling frequency:" | cut -d' ' -f7)
+			audio_channels=$(echo "$mkvinfo" | grep -i "+ Track number: ${audio_track[aud]}" -A20 | grep -i "+ Channels:" | cut -d' ' -f6)
+			audio_frequency=$(echo "$mkvinfo" | grep -i "+ Track number: ${audio_track[aud]}" -A20 | grep -i "+ Sampling frequency:" | cut -d' ' -f7)
 			
 			##if input headers contain 'Name' tag, mencoder only reads first few MBs. few files will require this (bizarre) fix.
-			$(echo "$mkvinfo" | grep -i "+ Track number: ${audio_track[aud]}" "$_grepa" | grep -q "+ Name:") && audio_channels=2
+			$(echo "$mkvinfo" | grep -i "+ Track number: ${audio_track[aud]}" -A20 | grep -q "+ Name:") && audio_channels=2
 
 			case "$audio_channels" in
 				2) _aften () { aften -v 1 -raw_ch 2 -raw_sr "$audio_frequency" -b 192 -wmax 30 - "$3.ac3"; };;
@@ -196,13 +194,13 @@ if [ -f "$SFONT" -a -n "${subs_format[sub]}" ]; then
 			;;
 	esac
 	
-	echo "${subs_format[sub]}, $subs_source, font-name=$SFONT, font-size=65, font-color=0x00ffffff, bottom-offset=24, \
+	echo "${subs_format[sub]}, $subs_source, font-name=$SFONT, font-size=45, font-color=0x00ffffff, bottom-offset=24, \
 	font-border=2, text-align=center, video-width=$video_width, video-height=$video_height, fps=$video_fps, track=${subs_track[sub]}, \
 	lang=${subs_lang[sub]}" >> "$3.meta"
 fi
 
 output="$2"
-case "${FORMAT:=m2ts}" in
+case "$FORMAT" in
 	ts|m2ts) output+=".$FORMAT";;
 	bluray|avchd|demux) output+=".${FORMAT^^}";;
 esac
@@ -210,14 +208,7 @@ esac
 tsMuxeR "$3.meta" "$output" && echo -e "\n ${1##*/} successfully remuxed to: $output!" || { rm -f "$output"; die "\n Error remuxing: ${1##*/}."; }
 
 rm -f "$3."{meta,264,dts,ac3,mp3,aud,sub} &> "/dev/null"
-[ "${SAVE_INPUT:=1}" = 0 ] && rm -f "$1"
-
-return 0
-}
-
-
-notmp() {
-[ $(ls -A "$TEMP") ] || rm -rf "$TEMP"
+[ "${SAVE_INPUT:=1}" = 0 ] && rm -rf "$1"
 
 return 0
 }
@@ -225,7 +216,7 @@ return 0
 
 die() {
 echo -e "$1"
-notmp
+rm -rf "$TEMP"
 
 exit 1
 }
@@ -338,11 +329,11 @@ elif [ -d "$INPUT" ]; then INPUT=($(find "$INPUT" -maxdepth 1 -type f | egrep -i
 elif [ ! -f "$INPUT" ]; then die "\n Input file: $INPUT not found."; fi
 
 [ -n "$OUTPUT" -a ! -d "$OUTPUT" ] && { mkdir -p "$OUTPUT" || die "Unable to create output directory: $OUTPUT."; }
-[ ! -d "${TEMP:=$PWD/autsmuxer-tmp-$$}" ] && { mkdir -p "$TEMP" || die "Unable to create temporary directory: $TEMP."; }
+TEMP="${TEMP:=$PWD}/autsmuxer-tmp-$$"; mkdir -p "$TEMP" || die "Unable to create temporary directory: $TEMP."
 
 for input in ${INPUT[@]}; do
 	[ -n "$OUTPUT" ] && output="$OUTPUT/${input##*/}" || output="$input"
 	tsmuxer_mkv2x "$input" "${output%.*}" "$TEMP/$$"
 done
 
-notmp
+rm -rf "$TEMP"
