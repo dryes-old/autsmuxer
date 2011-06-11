@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# autsmuxer - automated tsMuxeR frontend. (MKV input.)
+# autsmuxer - automated tsMuxeR wrapper. (MKV input.)
 #
 # This program is free software; you can redistribute it and/or modify it
 # under the terms of the GNU Library General Public License as published
