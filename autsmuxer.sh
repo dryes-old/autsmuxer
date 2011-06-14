@@ -149,12 +149,12 @@ case "${audio_codec[aud]}" in
 			$(echo "$mkvinfo" | grep -i "+ Track number: ${audio_track[aud]}" -A18 | grep -q "+ Name:") && audio_channels=2
 
 			case "$audio_channels" in
-				2) _aften () { aften -v 1 -raw_ch 2 -raw_sr "$audio_frequency" -b 192 -wmax 30 - "$2.ac3"; };;
-				*) _aften () { aften -v 1 -raw_ch "$audio_channels" -lfe 1 -raw_sr "$audio_frequency" -b 384 -wmax 30 - "$2.ac3"; };;
+				2) _aften () { aften -v 1 -raw_ch 2 -raw_sr "$audio_frequency" -b 192 -wmax 30 - "$1.ac3"; };;
+				*) _aften () { aften -v 1 -raw_ch "$audio_channels" -lfe 1 -raw_sr "$audio_frequency" -b 384 -wmax 30 - "$1.ac3"; };;
 			esac
 	
 			mencoder -noconfig all -msglevel all=-1 -really-quiet -of rawaudio -af format=s16le -lavdopts threads=2 \
-			-oac pcm -ovc frameno "$1" -of rawaudio -channels "$audio_channels" -srate "$audio_frequency" -mc 0 -noskip -o - | _aften
+			-oac pcm -ovc frameno "$1" -of rawaudio -channels "$audio_channels" -srate "$audio_frequency" -mc 0 -noskip -o - | _aften "$2"
 	
 			echo "A_AC3, $2.ac3, lang=${audio_lang[aud]}" >> "$2.meta"
 		}
