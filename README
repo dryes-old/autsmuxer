@@ -5,7 +5,7 @@ It is entirely automated once called with desired options and switches, and will
 
   --libdca
   --mkvtoolnix
-  --mplayer
+  --mencoder
   --cmake
   --aften
   --tsMuxeR
