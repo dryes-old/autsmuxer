@@ -119,7 +119,7 @@ _spdifconvert () {
 	##mencoder -noconfig all -msglevel all=-1 -really-quiet -of rawaudio -af format=s16le -lavdopts threads=2 \
 	##-oac pcm -ovc frameno "$1" -of rawaudio -channels "$audio_channels" -srate "$audio_frequency" -mc 0 -noskip -o - | spdifconvert --stdin --persevere --output="$2.wav"
 
-	mkvextract tracks "$1" "${audio_track[aud]}":"$2.aud" && spdifconvert "$2.aud" && \
+	mkvextract tracks "$1" "${audio_track[aud]}":"$2.aud" && spdifconvert -v "$2.aud" && \
 	echo "A_LPCM, $2.aud.wav, lang=${audio_lang[aud]}" >> "$2.meta"
 }
 
