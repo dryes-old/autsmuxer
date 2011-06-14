@@ -29,13 +29,14 @@
 #STRACK=""	##specify subs track.
 SFONT="/usr/share/fonts/TTF/DejaVuSans.ttf"	##required only for subs.
 #SPLIT=""	##maximum filesize per part. eg. 4000MB (safer with 3900) for FAT32 filesystem.
+#SPDIF=""	##spoof AC3 and DTS to LPCM.
 
 
 ##
 
 
 TITLE="autsmuxer"
-VERSION=4.20101902
+VERSION=4.20111406
 
 IFS=$'\n'
 
@@ -111,19 +112,33 @@ else
 	die "\n Incompatible video codec found."
 fi
 
+_spdifconvert () {
+	##audio_channels=$(echo "$mkvinfo" | grep -i "+ Track number: ${audio_track[aud]}" -A18 | grep -i "+ Channels:" -m1 | cut -d' ' -f6)
+	##audio_frequency=$(echo "$mkvinfo" | grep -i "+ Track number: ${audio_track[aud]}" -A18 | grep -i "+ Sampling frequency:" -m1 | cut -d' ' -f7)
+			
+	##mencoder -noconfig all -msglevel all=-1 -really-quiet -of rawaudio -af format=s16le -lavdopts threads=2 \
+	##-oac pcm -ovc frameno "$1" -of rawaudio -channels "$audio_channels" -srate "$audio_frequency" -mc 0 -noskip -o - | spdifconvert --stdin --persevere --output="$2.wav"
+
+	mkvextract tracks "$1" "${audio_track[aud]}":"$2.aud" && spdifconvert "$2.aud" && \
+	echo "A_LPCM, $2.aud.wav, lang=${audio_lang[aud]}" >> "$2.meta"
+}
 
 case "${audio_codec[aud]}" in
-	A_DTS)	if [ "${DTS:=0}" = 0 ]; then
+	A_DTS)	if [ "${DTS:=0}" = 0 -a "${SPDIF:=0}" = 0 ]; then
 			mkvextract tracks "$1" "${audio_track[aud]}":"$3.dts" && dcadec -o wavall "$3.dts" | aften -v 0 -readtoeof 1 - "$3.ac3" && \
 			echo "A_AC3, $3.ac3, lang=${audio_lang[aud]}" >> "$3.meta"
 		else
-			case $_extebml in
-				0) echo "A_DTS, $1, track=${audio_track[aud]}, lang=${audio_lang[aud]}" >> "$3.meta"
-				;;
-				*) mkvextract tracks "$1" "${audio_track[aud]}":"$3.dts" && \
-				echo "A_DTS, $3.dts, lang=${audio_lang[aud]}" >> "$3.meta"
-				;;
-			esac
+			if [ "${SPDIF:=0}" = 0 ]; then
+				case $_extebml in
+					0) echo "A_DTS, $1, track=${audio_track[aud]}, lang=${audio_lang[aud]}" >> "$3.meta"
+					;;
+					*) mkvextract tracks "$1" "${audio_track[aud]}":"$3.dts" && \
+					echo "A_DTS, $3.dts, lang=${audio_lang[aud]}" >> "$3.meta"
+					;;
+				esac
+			else
+				_spdifconvert "$1" "$3"
+			fi
 		fi
 	;;
 	A_AC3)	_repairac3 () {
@@ -134,33 +149,37 @@ case "${audio_codec[aud]}" in
 			$(echo "$mkvinfo" | grep -i "+ Track number: ${audio_track[aud]}" -A18 | grep -q "+ Name:") && audio_channels=2
 
 			case "$audio_channels" in
-				2) _aften () { aften -v 1 -raw_ch 2 -raw_sr "$audio_frequency" -b 192 -wmax 30 - "$3.ac3"; };;
-				*) _aften () { aften -v 1 -raw_ch "$audio_channels" -lfe 1 -raw_sr "$audio_frequency" -b 384 -wmax 30 - "$3.ac3"; };;
+				2) _aften () { aften -v 1 -raw_ch 2 -raw_sr "$audio_frequency" -b 192 -wmax 30 - "$2.ac3"; };;
+				*) _aften () { aften -v 1 -raw_ch "$audio_channels" -lfe 1 -raw_sr "$audio_frequency" -b 384 -wmax 30 - "$2.ac3"; };;
 			esac
 	
 			mencoder -noconfig all -msglevel all=-1 -really-quiet -of rawaudio -af format=s16le -lavdopts threads=2 \
 			-oac pcm -ovc frameno "$1" -of rawaudio -channels "$audio_channels" -srate "$audio_frequency" -mc 0 -noskip -o - | _aften
 	
-			echo "A_AC3, $3.ac3, lang=${audio_lang[aud]}" >> "$3.meta"
+			echo "A_AC3, $2.ac3, lang=${audio_lang[aud]}" >> "$2.meta"
 		}
 		
-		case $_extebml in
-			0) _tsmuxerinfo=$(tsMuxeR "$1")
-			if ! echo "$_tsmuxerinfo" | grep -s "Track ID:    ${audio_track[aud]}" -A1 | grep -q "Can't detect stream type"; then
-				echo "A_AC3, $1, track=${audio_track[aud]}, lang=${audio_lang[aud]}" >> "$3.meta"
-			else
-				_repairac3
-			fi
-			;;
-			*) mkvextract tracks "$1" "${audio_track[aud]}":"$3.ac3" && _tsmuxerinfo=$(tsMuxeR "$3.ac3")
-			if ! echo "$_tsmuxerinfo" | grep -q "Can't detect stream type"; then
-				echo "A_AC3, $3.ac3, lang=${audio_lang[aud]}" >> "$3.meta"
-			else
-				rm "$3.ac3"
-				_repairac3
-			fi
-			;;
-		esac
+		if [ "${SPDIF:=0}" = 0 ]; then
+			case $_extebml in
+				0) _tsmuxerinfo=$(tsMuxeR "$1")
+				if ! echo "$_tsmuxerinfo" | grep -s "Track ID:    ${audio_track[aud]}" -A1 | grep -q "Can't detect stream type"; then
+					echo "A_AC3, $1, track=${audio_track[aud]}, lang=${audio_lang[aud]}" >> "$3.meta"
+				else
+					_repairac3 "$1" "$3"
+				fi
+				;;
+				*) mkvextract tracks "$1" "${audio_track[aud]}":"$3.ac3" && _tsmuxerinfo=$(tsMuxeR "$3.ac3")
+				if ! echo "$_tsmuxerinfo" | grep -q "Can't detect stream type"; then
+					echo "A_AC3, $3.ac3, lang=${audio_lang[aud]}" >> "$3.meta"
+				else
+					rm "$3.ac3"
+					_repairac3 "$1" "$3"
+				fi
+				;;
+			esac
+		else	
+			_spdifconvert "$1" "$3"
+		fi
 	;;
 	A_MPEG/L[2-3]) 	case $_extebml in
 				0) echo "A_MP3, $1, track=${audio_track[aud]}, lang=${audio_lang[aud]}" >> "$3.meta"
@@ -207,7 +226,7 @@ esac
 
 tsMuxeR "$3.meta" "$output" && echo -e "\n ${1##*/} successfully remuxed to: $output!" || { rm -f "$output"; die "\n Error remuxing: ${1##*/}."; }
 
-rm -f "$3."{meta,264,dts,ac3,mp3,aud,sub} &> "/dev/null"
+rm -f "$3."{meta,264,dts,ac3,wav,mp3,aud,sub} &> "/dev/null"
 [ "${SAVE_INPUT:=1}" = 0 ] && rm -rf "$1"
 
 return 0
@@ -245,6 +264,7 @@ echo -e "\n\t --atrack <#>"
 echo -e "\n\t --strack <#>"
 echo -e "\n\t --sfont </path/to/font.ttf>"
 echo -e "\n\t --split <#MB/GB>"
+echo -e "\n\t --spdif <0/1>"
 
 exit 0
 }
@@ -298,6 +318,10 @@ while [ "$#" -ne 0 ]; do
 		shift; SPLIT="$1"
 		[ -z "$1" -o "$1" = 0 ] && die "\n SPLIT must be >1."
 		;;
+		--spdif)
+		shift; SPDIF="$1"
+		[ -z "$1" -o "$1" -ge 2 ] && die "\n SPDIF must be 1 or 0."
+		;;
 		-*)
 		while getopts ":hRd" opt $1; do
 		case "$opt" in
@@ -320,8 +344,8 @@ while [ "$#" -ne 0 ]; do
 	shift
 done
 
-
-type_allpkgreq "mkvinfo" "mkvextract" "dcadec" "aften" "mencoder" "tsMuxeR"
+[ "${SPDIF:=0}" = 1 ] && spdifconvert="spdifconvert" || spdifconvert="type"
+type_allpkgreq "mkvinfo" "mkvextract" "dcadec" "aften" "mencoder" "tsMuxeR" "$spdifconvert"
 
 
 if [ "${RECURSIVE:=0}" = 1 -a -d "$INPUT" ]; then INPUT=($(find "$INPUT" -type f | egrep -i "\.mkv$" | sort))
