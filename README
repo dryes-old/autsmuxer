@@ -1,6 +1,15 @@
 This is effectively MKV2VOB for UNiX based systems. (minus the GUI.)
 It is entirely automated once called with desired options and switches, and will handle all known exceptions of MKV, including those with compressed headers or corrupt audio streams.
 
+ dependencies (in PATH):
+
+  --libdca
+  --mkvtoolnix
+  --mplayer
+  --cmake
+  --aften
+  --tsMuxeR
+  --spdifconvert
 
 
  usage: autsmuxer [-options] inputfile/dir.
