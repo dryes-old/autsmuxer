@@ -12,7 +12,8 @@ It is entirely automated once called with desired options and switches, and will
   --spdifconvert
 
 
- usage: autsmuxer [-options] inputfile/dir.
+ 
+ usage: autsmuxer.sh [-options] inputfile/dir.
 
  options:
 
@@ -48,3 +49,5 @@ It is entirely automated once called with desired options and switches, and will
 	 --sfont </path/to/font.ttf>
 
 	 --split <#MB/GB>
+
+	 --spdif <0/1/2>
