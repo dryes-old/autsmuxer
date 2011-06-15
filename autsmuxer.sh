@@ -29,14 +29,14 @@
 #STRACK=""	##specify subs track.
 SFONT="/usr/share/fonts/TTF/DejaVuSans.ttf"	##required only for subs.
 #SPLIT=""	##maximum filesize per part. eg. 4000MB (safer with 3900) for FAT32 filesystem.
-#SPDIF=""	##spoof AC3 and DTS to LPCM.
+#SPDIF=""	##convert AC3 and DTS to LPCM - set to 1 for DTS only, 2 for AC3/DTS.
 
 
 ##
 
 
 TITLE="autsmuxer"
-VERSION=4.20111406
+VERSION=4.20111506
 
 IFS=$'\n'
 
@@ -128,7 +128,7 @@ case "${audio_codec[aud]}" in
 			mkvextract tracks "$1" "${audio_track[aud]}":"$3.dts" && dcadec -o wavall "$3.dts" | aften -v 0 -readtoeof 1 - "$3.ac3" && \
 			echo "A_AC3, $3.ac3, lang=${audio_lang[aud]}" >> "$3.meta"
 		else
-			if [ "${SPDIF:=0}" = 0 ]; then
+			if [ "$SPDIF" = 0 ]; then
 				case $_extebml in
 					0) echo "A_DTS, $1, track=${audio_track[aud]}, lang=${audio_lang[aud]}" >> "$3.meta"
 					;;
@@ -177,7 +177,7 @@ case "${audio_codec[aud]}" in
 				fi
 				;;
 			esac
-		else	
+		elif [ "$SPDIF" = 2 ]; then
 			_spdifconvert "$1" "$3"
 		fi
 	;;
@@ -264,7 +264,7 @@ echo -e "\n\t --atrack <#>"
 echo -e "\n\t --strack <#>"
 echo -e "\n\t --sfont </path/to/font.ttf>"
 echo -e "\n\t --split <#MB/GB>"
-echo -e "\n\t --spdif <0/1>"
+echo -e "\n\t --spdif <0/1/2>"
 
 exit 0
 }
@@ -320,7 +320,7 @@ while [ "$#" -ne 0 ]; do
 		;;
 		--spdif)
 		shift; SPDIF="$1"
-		[ -z "$1" -o "$1" -ge 2 ] && die "\n SPDIF must be 1 or 0."
+		[ -z "$1" -o "$1" -ge 3 ] && die "\n SPDIF must be <2."
 		;;
 		-*)
 		while getopts ":hRd" opt $1; do
@@ -344,7 +344,7 @@ while [ "$#" -ne 0 ]; do
 	shift
 done
 
-[ "${SPDIF:=0}" = 1 ] && spdifconvert="spdifconvert" || spdifconvert="type"
+[ "${SPDIF:=0}" != 0 ] && spdifconvert="spdifconvert" || spdifconvert="type"
 type_allpkgreq "mkvinfo" "mkvextract" "dcadec" "aften" "mencoder" "tsMuxeR" "$spdifconvert"
 
 
