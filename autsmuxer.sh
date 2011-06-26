@@ -36,7 +36,7 @@ SFONT="/usr/share/fonts/TTF/DejaVuSans.ttf"	##required only for subs.
 
 
 TITLE="autsmuxer"
-VERSION=4.20111506
+VERSION=4.20112606
 
 IFS=$'\n'
 
@@ -159,7 +159,7 @@ case "${audio_codec[aud]}" in
 			echo "A_AC3, $2.ac3, lang=${audio_lang[aud]}" >> "$2.meta"
 		}
 		
-		if [ "${SPDIF:=0}" = 0 ]; then
+		if [ "${SPDIF:=0}" != 2 ]; then
 			case $_extebml in
 				0) _tsmuxerinfo=$(tsMuxeR "$1")
 				if ! echo "$_tsmuxerinfo" | grep -s "Track ID:    ${audio_track[aud]}" -A1 | grep -q "Can't detect stream type"; then
