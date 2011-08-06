@@ -59,7 +59,7 @@ done
 tsmuxer_mkv2x () {
 echo -e " Processng: $1..\n"
 
-mkvinfo=$(mkvinfo "$1")
+mkvinfo=$(mkvinfo --ui-language en_US "$1")
 case $(echo "$mkvinfo" | egrep "EBML version:" | cut -d' ' -f4) in
 	1) audio_lang="und"; subs_lang="und"
 	;;
