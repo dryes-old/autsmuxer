@@ -4,13 +4,15 @@ It is entirely automated once called with desired options and switches, and will
  dependencies (in PATH):
 
   --libdca
-  --mkvtoolnix
+  --mkvtoolnix**
   --mencoder
   --cmake
   --aften
   --tsMuxeR
   --spdifconvert
 
+
+**ensure you are running at least 5.4.0.
 
  
  usage: autsmuxer.sh [-options] inputfile/dir.
