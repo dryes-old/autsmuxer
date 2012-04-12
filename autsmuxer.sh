@@ -272,7 +272,7 @@ usage () {
   echo -e "\n\n\t --recursive <0/1>"
   echo -e "\n\t --save-input <0/1>"
   echo -e "\n\t --output </output/dir/>"
-  echo -e "\n\t --temp </temp/dir>"
+  echo -e "\n\t --temp </temp/dir/>"
   echo -e "\n\t --format <ts/m2ts/bluray/avchd/demux>"
   echo -e "\n\t --dts <0/1>"
   echo -e "\n\t --vtrack <#>"
