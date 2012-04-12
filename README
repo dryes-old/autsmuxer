@@ -36,7 +36,7 @@ It is entirely automated once called with desired options and switches, and will
 
 	 --output </output/dir/>
 
-	 --temp </temp/dir>
+	 --temp </temp/dir/>
 
 	 --format <ts/m2ts/bluray/avchd/demux>
 
