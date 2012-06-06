@@ -1,55 +1,31 @@
-This is effectively MKV2VOB for UNiX based systems. (minus the GUI.)
-It is entirely automated once called with desired options and switches, and will handle all known exceptions of MKV, including those with compressed headers or corrupt audio streams.
+autsmuxer
+=====
 
- dependencies (in PATH):
+* mkv2vob CLI clone for *nix.
 
-  --libdca
-  --mkvtoolnix**
-  --mencoder
-  --cmake
-  --aften
-  --tsMuxeR
-  --spdifconvert
+## dependencies:
 
+* [libdca][libdca]
+* [mkvtoolnix][mkvtoolnix]
+* [mencoder][mencoder]
+* [cmake][cmake]
+* [aften][aften]
+* [tsMuxeR][tsmuxer]
+* [spdifconvert][spdifconvert]
 
-**ensure you are running at least 5.4.0.
+## usage:
 
- 
- usage: autsmuxer.sh [-options] inputfile/dir.
+* Install all dependencies, ensuring they are in $PATH.
+* bash autsmuxer.sh [-options] inputfile/dir.
 
- options:
+## notes:
 
-	 -R 	- Recursively search for MKV files.
+* mkvtoolnix must be >5.4.0.
 
-	 -d 	- Delete input file after successful mux.
-
-	 -o 	- Specify output directory.
-
-	 -t 	- Specify temporary directory.
-
-	 -f 	- Set format - (<ts/m2ts/bluray/avchd/demux>).
-
-
-	 --recursive <0/1>
-
-	 --save-input <0/1>
-
-	 --output </output/dir/>
-
-	 --temp </temp/dir/>
-
-	 --format <ts/m2ts/bluray/avchd/demux>
-
-	 --dts <0/1>
-
-	 --vtrack <#>
-
-	 --atrack <#>
-
-	 --strack <#>
-
-	 --sfont </path/to/font.ttf>
-
-	 --split <#MB/GB>
-
-	 --spdif <0/1/2>
+[libdca]: http://www.videolan.org/developers/libdca.html
+[mkvtoolnix]: http://www.bunkus.org/videotools/mkvtoolnix/index.html
+[mencoder]: http://www.mplayerhq.hu/
+[cmake]: http://www.cmake.org/
+[aften]: http://aften.sourceforge.net/
+[tsmuxer]: http://www.smlabs.net/tsmuxer_en.html
+[spdifconvert]: http://forums.slimdevices.com/showthread.php?t=19260
