@@ -1,7 +1,7 @@
 autsmuxer
 =====
 
-* mkv2vob CLI clone for *nix.
+mkv2vob CLI clone for *nix.
 
 ## dependencies:
 
