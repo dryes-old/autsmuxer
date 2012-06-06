@@ -21,6 +21,7 @@ autsmuxer
 ## notes:
 
 * mkvtoolnix must be >5.4.0.
+* DTS audio is converted to AC3 unless '--dts 1' is passed.
 
 [libdca]: http://www.videolan.org/developers/libdca.html
 [mkvtoolnix]: http://www.bunkus.org/videotools/mkvtoolnix/index.html
