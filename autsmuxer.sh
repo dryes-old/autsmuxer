@@ -93,7 +93,7 @@ tsmuxer_mkv2x () {
     subs_format=($(echo "${mkvinfo}" | grep -i "+ Codec ID: ${sf}" | cut -d' ' -f6))
   done
   for st in ${subs_format[@]}; do
-    subs_track=($(echo "${mkvinfo}" | grep -i "+ Codec ID: ${subs_format[*]}" -B11 | grep -i "+ Track number:" | cut -d' ' -f6))
+    subs_track=($(echo "${mkvinfo}" | grep -i "+ Codec ID: ${st}" -B11 | grep -i "+ Track number:" | cut -d' ' -f6))
   done
   [ -z "${subs_lang}" ] && subs_lang=($(echo "${mkvinfo}" | grep -i "Track type: subtitles" -A18 | grep -i "Language:" | cut -d' ' -f5))
   #echo ${subs_format[@]}
