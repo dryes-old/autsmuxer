@@ -19,7 +19,7 @@ mkv2vob CLI clone for *nix.
 
 ## notes:
 
-* mkvtoolnix must be >5.4.0.
+* mkvtoolnix must be >5.4.0. ([issue 3])
 * DTS audio is converted to AC3 unless '--dts 1' is passed.
 
 [libdca]: http://www.videolan.org/developers/libdca.html
@@ -28,3 +28,4 @@ mkv2vob CLI clone for *nix.
 [aften]: http://aften.sourceforge.net/
 [tsmuxer]: http://www.smlabs.net/tsmuxer_en.html
 [spdifconvert]: http://forums.slimdevices.com/showthread.php?t=19260
+[issue 3]: https://github.com/dryes/autsmuxer/issues/3
