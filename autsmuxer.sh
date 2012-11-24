@@ -37,7 +37,7 @@ SFONT='/usr/share/fonts/TTF/DejaVuSans.ttf'	##required only for subs.
 
 
 TITLE='autsmuxer'
-VERSION=4.20120606
+VERSION=4.20121124
 
 IFS=$'\n'
 
@@ -130,7 +130,7 @@ tsmuxer_mkv2x () {
     [ -n "${SPLIT}" ] && echo -n " --split-size=${SPLIT}" >> "${3}.meta"
     
     case ${_extebml} in
-      0) echo -e "\n${video_codec[vid]}, ${1}, level=4.1, fps=${video_fps}, insertSEI, contSPS, track=${video_track[vid]}, lang=${audio_lang[aud]}" >> "${3}.meta"
+      0) echo -e "\n${video_codec[vid]}, \"${1}\", level=4.1, fps=${video_fps}, insertSEI, contSPS, track=${video_track[vid]}, lang=${audio_lang[aud]}" >> "${3}.meta"
       ;;
       *) mkvextract tracks "${1}" $video_extract:"${3}.264" && 
         echo -e "\n${video_codec[vid]}, ${3}.264, level=4.1, fps=${video_fps}, insertSEI, contSPS, lang=${audio_lang[aud]}" >> "${3}.meta" || die
@@ -160,7 +160,7 @@ tsmuxer_mkv2x () {
       else
         if [ "${SPDIF}" = 0 ]; then
           case ${_extebml} in
-            0) echo "A_DTS, ${1}, track=${audio_track[aud]}, lang=${audio_lang[aud]}" >> "${3}.meta"
+            0) echo "A_DTS, \"${1}\", track=${audio_track[aud]}, lang=${audio_lang[aud]}" >> "${3}.meta"
             ;;
             *) mkvextract tracks "${1}" $audio_extract:"${3}.dts" && 
               echo "A_DTS, ${3}.dts, lang=${audio_lang[aud]}" >> "${3}.meta" || die
@@ -198,7 +198,7 @@ tsmuxer_mkv2x () {
         case ${_extebml} in
           0) _tsmuxerinfo=$(tsMuxeR "${1}")
             if ! echo "${_tsmuxerinfo}" | grep -s "Track ID:    ${audio_track[aud]}" -A1 | grep -q "Can't detect stream type"; then
-              echo "A_AC3, ${1}, track=${audio_track[aud]}, lang=${audio_lang[aud]}" >> "${3}.meta"
+              echo "A_AC3, \"${1}\", track=${audio_track[aud]}, lang=${audio_lang[aud]}" >> "${3}.meta"
             else
               _repairac3 "${1}" "${3}"
             fi
@@ -218,7 +218,7 @@ tsmuxer_mkv2x () {
     ;;
     A_MPEG/L[2-3])
       case ${_extebml} in
-        0) echo "A_MP3, ${1}, track=${audio_track[aud]}, lang=${audio_lang[aud]}" >> "${3}.meta"
+        0) echo "A_MP3, \"${1}\", track=${audio_track[aud]}, lang=${audio_lang[aud]}" >> "${3}.meta"
         ;;
         *) mkvextract tracks "${1}" $audio_extract:"${3}.mp3" && 
           echo "A_MP3, ${3}.mp3, lang=${audio_lang[aud]}" >> "${3}.meta" || die
@@ -227,7 +227,7 @@ tsmuxer_mkv2x () {
     ;;
     A_*)
       case ${_extebml} in
-        0) echo "${audio_codec[aud]}, ${1}, track=${audio_track[aud]}, lang=${audio_lang[aud]}" >> "${3}.meta"
+        0) echo "${audio_codec[aud]}, \"${1}\", track=${audio_track[aud]}, lang=${audio_lang[aud]}" >> "${3}.meta"
         ;;
         *) mkvextract tracks "${1}" $audio_extract:"${3}.aud" && 
           echo "${audio_codec[aud]}, ${3}.aud, lang=${audio_lang[aud]}" >> "${3}.meta" || die
